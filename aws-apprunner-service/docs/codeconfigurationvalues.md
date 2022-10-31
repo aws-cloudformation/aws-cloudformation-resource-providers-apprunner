@@ -39,7 +39,7 @@ _Required_: Yes
 
 _Type_: String
 
-_Allowed Values_: <code>PYTHON_3</code> | <code>NODEJS_12</code> | <code>NODEJS_14</code> | <code>CORRETTO_8</code> | <code>CORRETTO_11</code>
+_Allowed Values_: <code>PYTHON_3</code> | <code>NODEJS_12</code> | <code>NODEJS_14</code> | <code>NODEJS_16</code> | <code>CORRETTO_8</code> | <code>CORRETTO_11</code> | <code>GO_1</code> | <code>DOTNET_6</code> | <code>PHP_81</code> | <code>RUBY_31</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
