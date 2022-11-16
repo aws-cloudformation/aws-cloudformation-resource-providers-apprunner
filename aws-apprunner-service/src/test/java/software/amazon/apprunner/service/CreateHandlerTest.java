@@ -34,6 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static software.amazon.apprunner.service.TestData.NETWORK_CONFIGURATION;
+import static software.amazon.apprunner.service.TestData.NETWORK_CONFIGURATION_PRIVATE;
 import static software.amazon.apprunner.service.TestData.SERVICE_NAME;
 import static software.amazon.apprunner.service.TestData.SERVICE_STATUS_OPERATION_IN_PROGRESS;
 import static software.amazon.apprunner.service.TestData.SERVICE_ARN;
@@ -41,7 +42,9 @@ import static software.amazon.apprunner.service.TestData.SERVICE_STATUS_RUNNING;
 import static software.amazon.apprunner.service.TestData.SERVICE_STATUS_CREATE_FAILED;
 import static software.amazon.apprunner.service.TestData.CLIENT_TOKEN;
 import static software.amazon.apprunner.service.TestData.LOGICAL_RESOURCE_IDENTIFIER;
+import static software.amazon.apprunner.service.TestData.SERVICE_OBSERVABILITY_CONFIGURATION_ENABLED;
 import static software.amazon.apprunner.service.Translator.translateFromNetworkConfiguration;
+import static software.amazon.apprunner.service.Translator.translateFromServiceObservabilityConfiguration;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -125,6 +128,86 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .serviceName(SERVICE_NAME)
                 .serviceArn(SERVICE_ARN)
                 .networkConfiguration(NETWORK_CONFIGURATION)
+                .build();
+        DescribeServiceResponse describeServiceResponse = DescribeServiceResponse.builder().build();
+        CreateServiceResponse createServiceResponse = CreateServiceResponse.builder()
+                .service(service)
+                .build();
+        when(proxyClient.client().describeService(any(DescribeServiceRequest.class)))
+                .thenReturn(describeServiceResponse);
+        when(proxyClient.client().createService(any(CreateServiceRequest.class)))
+                .thenReturn(createServiceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void handleRequest_ServiceCreationServiceObservabilityConfiguration_Success() {
+        final CreateHandler handler = new CreateHandler();
+        final ResourceModel model = ResourceModel.builder()
+                .status(SERVICE_STATUS_RUNNING)
+                .serviceName(SERVICE_NAME)
+                .serviceArn(SERVICE_ARN)
+                .observabilityConfiguration(translateFromServiceObservabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_ENABLED))
+                .build();
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(model)
+                .build();
+
+        Service service = Service.builder()
+                .status(SERVICE_STATUS_RUNNING)
+                .serviceName(SERVICE_NAME)
+                .serviceArn(SERVICE_ARN)
+                .observabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_ENABLED)
+                .build();
+        DescribeServiceResponse describeServiceResponse = DescribeServiceResponse.builder().build();
+        CreateServiceResponse createServiceResponse = CreateServiceResponse.builder()
+                .service(service)
+                .build();
+        when(proxyClient.client().describeService(any(DescribeServiceRequest.class)))
+                .thenReturn(describeServiceResponse);
+        when(proxyClient.client().createService(any(CreateServiceRequest.class)))
+                .thenReturn(createServiceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void handleRequest_ServiceCreationPrivate_Success() {
+        final CreateHandler handler = new CreateHandler();
+        final ResourceModel model = ResourceModel.builder()
+                .status(SERVICE_STATUS_RUNNING)
+                .serviceName(SERVICE_NAME)
+                .serviceArn(SERVICE_ARN)
+                .networkConfiguration(translateFromNetworkConfiguration(NETWORK_CONFIGURATION_PRIVATE))
+                .build();
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(model)
+                .build();
+
+        Service service = Service.builder()
+                .status(SERVICE_STATUS_RUNNING)
+                .serviceName(SERVICE_NAME)
+                .serviceArn(SERVICE_ARN)
+                .networkConfiguration(NETWORK_CONFIGURATION_PRIVATE)
                 .build();
         DescribeServiceResponse describeServiceResponse = DescribeServiceResponse.builder().build();
         CreateServiceResponse createServiceResponse = CreateServiceResponse.builder()

@@ -37,13 +37,14 @@ public class Translator {
                 .encryptionConfiguration(translateToEncryptionConfiguration(model.getEncryptionConfiguration()))
                 .healthCheckConfiguration(translateToHealthCheckConfiguration(model.getHealthCheckConfiguration()))
                 .networkConfiguration(translateToNetworkConfigurationForCreate(model.getNetworkConfiguration()))
+                .observabilityConfiguration(translateToServiceObservabilityConfiguration(model.getObservabilityConfiguration()))
                 .autoScalingConfigurationArn(model.getAutoScalingConfigurationArn())
                 .tags(convertToList(tags))
                 .build();
     }
 
     private static software.amazon.awssdk.services.apprunner.model.SourceConfiguration
-        translateToSourceConfiguration(final SourceConfiguration sourceConfigurationModel) {
+    translateToSourceConfiguration(final SourceConfiguration sourceConfigurationModel) {
         software.amazon.awssdk.services.apprunner.model.AuthenticationConfiguration authenticationConfiguration
                 = sourceConfigurationModel != null
                 ? translateToAuthenticationConfiguration(sourceConfigurationModel.getAuthenticationConfiguration())
@@ -361,21 +362,26 @@ public class Translator {
         return networkConfigurationModel == null ? null
                 : software.amazon.awssdk.services.apprunner.model.NetworkConfiguration.builder()
                 .egressConfiguration(translateToEgressConfiguration(networkConfigurationModel.getEgressConfiguration()))
+                .ingressConfiguration(translateToIngressConfiguration(networkConfigurationModel.getIngressConfiguration()))
                 .build();
     }
 
     static software.amazon.awssdk.services.apprunner.model.NetworkConfiguration translateToNetworkConfigurationForUpdate(
             final NetworkConfiguration networkConfigurationModel) {
         if (networkConfigurationModel == null) {
-            // Null NetworkConfiguration in CFN means we should set the customer's service to DEFAULT (public egress).
+            // Null NetworkConfiguration in CFN means we should set the customer's service to DEFAULT (public egress and public ingress).
             return software.amazon.awssdk.services.apprunner.model.NetworkConfiguration.builder()
                     .egressConfiguration(software.amazon.awssdk.services.apprunner.model.EgressConfiguration.builder()
                             .egressType(EgressType.DEFAULT)
+                            .build())
+                    .ingressConfiguration(software.amazon.awssdk.services.apprunner.model.IngressConfiguration.builder()
+                            .isPubliclyAccessible(Boolean.TRUE)
                             .build())
                     .build();
         }
         return software.amazon.awssdk.services.apprunner.model.NetworkConfiguration.builder()
                 .egressConfiguration(translateToEgressConfiguration(networkConfigurationModel.getEgressConfiguration()))
+                .ingressConfiguration(translateToIngressConfiguration(networkConfigurationModel.getIngressConfiguration()))
                 .build();
     }
 
@@ -384,6 +390,7 @@ public class Translator {
         return networkConfiguration == null ? null
                 : NetworkConfiguration.builder()
                 .egressConfiguration(translateFromEgressConfiguration(networkConfiguration.egressConfiguration()))
+                .ingressConfiguration(translateFromIngressConfiguration(networkConfiguration.ingressConfiguration()))
                 .build();
     }
 
@@ -402,6 +409,43 @@ public class Translator {
                 : EgressConfiguration.builder()
                 .egressType(egressConfiguration.egressType().name())
                 .vpcConnectorArn(egressConfiguration.vpcConnectorArn())
+                .build();
+    }
+
+    private static software.amazon.awssdk.services.apprunner.model.IngressConfiguration translateToIngressConfiguration(
+            final IngressConfiguration igressConfiguration) {
+        return igressConfiguration == null ? null
+                : software.amazon.awssdk.services.apprunner.model.IngressConfiguration.builder()
+                .isPubliclyAccessible(igressConfiguration.getIsPubliclyAccessible())
+                .build();
+    }
+
+    private static IngressConfiguration translateFromIngressConfiguration(
+            final software.amazon.awssdk.services.apprunner.model.IngressConfiguration ingressConfiguration) {
+        return ingressConfiguration == null ? null
+                : IngressConfiguration.builder()
+                .isPubliclyAccessible(ingressConfiguration.isPubliclyAccessible())
+                .build();
+    }
+
+    static ServiceObservabilityConfiguration translateFromServiceObservabilityConfiguration(
+            final software.amazon.awssdk.services.apprunner.model.ServiceObservabilityConfiguration serviceObservabilityConfiguration) {
+        return serviceObservabilityConfiguration == null ? null
+                : ServiceObservabilityConfiguration.builder()
+                .observabilityEnabled(serviceObservabilityConfiguration.observabilityEnabled())
+                .observabilityConfigurationArn(serviceObservabilityConfiguration.observabilityConfigurationArn())
+                .build();
+    }
+
+    private static software.amazon.awssdk.services.apprunner.model.ServiceObservabilityConfiguration translateToServiceObservabilityConfiguration(
+            final ServiceObservabilityConfiguration serviceObservabilityConfiguration) {
+        return serviceObservabilityConfiguration == null
+                ? software.amazon.awssdk.services.apprunner.model.ServiceObservabilityConfiguration.builder()
+                .observabilityEnabled(false)
+                .build()
+                : software.amazon.awssdk.services.apprunner.model.ServiceObservabilityConfiguration.builder()
+                .observabilityEnabled(serviceObservabilityConfiguration.getObservabilityEnabled())
+                .observabilityConfigurationArn(serviceObservabilityConfiguration.getObservabilityConfigurationArn())
                 .build();
     }
 
@@ -468,6 +512,7 @@ public class Translator {
                 .instanceConfiguration(translateFromInstanceConfiguration(service.instanceConfiguration()))
                 .encryptionConfiguration(translateFromEncryptionConfiguration(service.encryptionConfiguration()))
                 .networkConfiguration(translateFromNetworkConfiguration(service.networkConfiguration()))
+                .observabilityConfiguration(translateFromServiceObservabilityConfiguration(service.observabilityConfiguration()))
                 .build();
     }
 
@@ -483,6 +528,7 @@ public class Translator {
                 .sourceConfiguration(translateToSourceConfiguration(model.getSourceConfiguration()))
                 .healthCheckConfiguration(translateToHealthCheckConfiguration(model.getHealthCheckConfiguration()))
                 .networkConfiguration(translateToNetworkConfigurationForUpdate(model.getNetworkConfiguration()))
+                .observabilityConfiguration(translateToServiceObservabilityConfiguration(model.getObservabilityConfiguration()))
                 .autoScalingConfigurationArn(model.getAutoScalingConfigurationArn())
                 .build();
     }

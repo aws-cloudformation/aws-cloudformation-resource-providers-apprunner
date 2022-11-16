@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.apprunner.model.EgressType;
 import software.amazon.awssdk.services.apprunner.model.InternalServiceErrorException;
 import software.amazon.awssdk.services.apprunner.model.InvalidRequestException;
 import software.amazon.awssdk.services.apprunner.model.Service;
+import software.amazon.awssdk.services.apprunner.model.ServiceObservabilityConfiguration;
 import software.amazon.awssdk.services.apprunner.model.UpdateServiceRequest;
 import software.amazon.awssdk.services.apprunner.model.UpdateServiceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -32,11 +33,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static software.amazon.apprunner.service.TestData.NETWORK_CONFIGURATION;
+import static software.amazon.apprunner.service.TestData.NETWORK_CONFIGURATION_PRIVATE;
+import static software.amazon.apprunner.service.TestData.SERVICE_OBSERVABILITY_CONFIGURATION_DISABLED;
+import static software.amazon.apprunner.service.TestData.SERVICE_OBSERVABILITY_CONFIGURATION_ENABLED;
 import static software.amazon.apprunner.service.TestData.SERVICE;
 import static software.amazon.apprunner.service.TestData.SERVICE_ARN;
 import static software.amazon.apprunner.service.TestData.SERVICE_STATUS_OPERATION_IN_PROGRESS;
 import static software.amazon.apprunner.service.TestData.SERVICE_STATUS_RUNNING;
 import static software.amazon.apprunner.service.Translator.translateFromNetworkConfiguration;
+import static software.amazon.apprunner.service.Translator.translateFromServiceObservabilityConfiguration;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractTestBase {
@@ -255,6 +260,93 @@ public class UpdateHandlerTest extends AbstractTestBase {
     }
 
     @Test
+    public void handleRequest_Success_PublicToPrivateIngress() {
+        final UpdateHandler handler = new UpdateHandler();
+
+        final ResourceModel previousModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .networkConfiguration(translateFromNetworkConfiguration(NETWORK_CONFIGURATION_PRIVATE))
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(desiredModel)
+                .previousResourceState(previousModel)
+                .build();
+
+        Service service = Service.builder()
+                .status(SERVICE_STATUS_RUNNING)
+                .networkConfiguration(NETWORK_CONFIGURATION_PRIVATE)
+                .build();
+        UpdateServiceResponse updateServiceResponse = UpdateServiceResponse.builder()
+                .service(service)
+                .build();
+        when(proxyClient.client().updateService(any(UpdateServiceRequest.class)))
+                .thenReturn(updateServiceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request,
+                new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void handleRequest_Success_PrivateToPublicIngress() {
+        final UpdateHandler handler = new UpdateHandler();
+
+        final ResourceModel previousModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .networkConfiguration(translateFromNetworkConfiguration(NETWORK_CONFIGURATION_PRIVATE))
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .networkConfiguration(NetworkConfiguration.builder()
+                        .ingressConfiguration(IngressConfiguration.builder()
+                                .isPubliclyAccessible(true)
+                                .build())
+                        .build())
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(desiredModel)
+                .previousResourceState(previousModel)
+                .build();
+
+        Service service = Service.builder()
+                .status(SERVICE_STATUS_RUNNING)
+                .networkConfiguration(software.amazon.awssdk.services.apprunner.model.NetworkConfiguration.builder()
+                        .ingressConfiguration(software.amazon.awssdk.services.apprunner.model.IngressConfiguration.builder()
+                                .isPubliclyAccessible(true)
+                                .build())
+                        .build())
+                .build();
+        UpdateServiceResponse updateServiceResponse = UpdateServiceResponse.builder()
+                .service(service)
+                .build();
+        when(proxyClient.client().updateService(any(UpdateServiceRequest.class)))
+                .thenReturn(updateServiceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request,
+                new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
     public void handleRequest_Success_NullNetworkConfiguration() {
 
         final UpdateHandler handler = new UpdateHandler();
@@ -262,6 +354,127 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final ResourceModel previousModel = ResourceModel.builder()
                 .serviceArn(SERVICE_ARN)
                 .networkConfiguration(translateFromNetworkConfiguration(NETWORK_CONFIGURATION))
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(desiredModel)
+                .previousResourceState(previousModel)
+                .build();
+
+        Service service = Service.builder()
+                .serviceArn(SERVICE_ARN)
+                .status(SERVICE_STATUS_RUNNING)
+                .build();
+        UpdateServiceResponse updateServiceResponse = UpdateServiceResponse.builder()
+                .service(service)
+                .build();
+        when(proxyClient.client().updateService(any(UpdateServiceRequest.class)))
+                .thenReturn(updateServiceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request,
+                new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void handleRequest_Success_ObservabilityDisabledToEnabled() {
+        final UpdateHandler handler = new UpdateHandler();
+
+        final ResourceModel previousModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .observabilityConfiguration(translateFromServiceObservabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_DISABLED))
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .observabilityConfiguration(translateFromServiceObservabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_ENABLED))
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(desiredModel)
+                .previousResourceState(previousModel)
+                .build();
+
+        Service service = Service.builder()
+                .status(SERVICE_STATUS_RUNNING)
+                .observabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_ENABLED)
+                .build();
+        UpdateServiceResponse updateServiceResponse = UpdateServiceResponse.builder()
+                .service(service)
+                .build();
+        when(proxyClient.client().updateService(any(UpdateServiceRequest.class)))
+                .thenReturn(updateServiceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request,
+                new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void handleRequest_Success_ObservabilityEnabledToDisabled() {
+        final UpdateHandler handler = new UpdateHandler();
+
+        final ResourceModel previousModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .observabilityConfiguration(translateFromServiceObservabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_ENABLED))
+                .build();
+
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .observabilityConfiguration(translateFromServiceObservabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_DISABLED))
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(desiredModel)
+                .previousResourceState(previousModel)
+                .build();
+
+        Service service = Service.builder()
+                .status(SERVICE_STATUS_RUNNING)
+                .observabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_DISABLED)
+                .build();
+        UpdateServiceResponse updateServiceResponse = UpdateServiceResponse.builder()
+                .service(service)
+                .build();
+        when(proxyClient.client().updateService(any(UpdateServiceRequest.class)))
+                .thenReturn(updateServiceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request,
+                new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void handleRequest_Success_NullServiceObservabilityConfiguration() {
+
+        final UpdateHandler handler = new UpdateHandler();
+
+        final ResourceModel previousModel = ResourceModel.builder()
+                .serviceArn(SERVICE_ARN)
+                .observabilityConfiguration(translateFromServiceObservabilityConfiguration(SERVICE_OBSERVABILITY_CONFIGURATION_ENABLED))
                 .build();
         final ResourceModel desiredModel = ResourceModel.builder()
                 .serviceArn(SERVICE_ARN)
