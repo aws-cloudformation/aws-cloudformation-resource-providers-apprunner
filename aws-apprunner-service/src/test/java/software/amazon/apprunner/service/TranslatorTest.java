@@ -48,6 +48,8 @@ public class TranslatorTest {
         assertThat(createServiceRequest.sourceConfiguration()).isNotNull();
         assertThat(createServiceRequest.instanceConfiguration()).isNotNull();
         assertThat(createServiceRequest.networkConfiguration()).isNotNull();
+        assertThat(createServiceRequest.networkConfiguration().ingressConfiguration()).isNotNull();
+        assertThat(createServiceRequest.networkConfiguration().egressConfiguration()).isNotNull();
         assertThat(createServiceRequest.sourceConfiguration().imageRepository().imageRepositoryType())
                 .isEqualTo(ImageRepositoryType.ECR);
         assertThat(createServiceRequest.tags()).contains(
@@ -55,6 +57,7 @@ public class TranslatorTest {
                         .key(TAG_KEY)
                         .value(TAG_VALUE)
                         .build());
+        assertThat(createServiceRequest.observabilityConfiguration()).isNotNull();
     }
 
     @Test
@@ -110,6 +113,8 @@ public class TranslatorTest {
         assertThat(resourceModel.getServiceUrl()).isEqualTo(SERVICE_URL);
         assertThat(resourceModel.getStatus()).isEqualTo(SERVICE_STATUS_RUNNING);
         assertThat(resourceModel.getNetworkConfiguration()).isEqualTo(RESOURCE_MODEL.getNetworkConfiguration());
+        assertThat(resourceModel.getNetworkConfiguration().getIngressConfiguration()).isEqualTo(RESOURCE_MODEL.getNetworkConfiguration().getIngressConfiguration());
+        assertThat(resourceModel.getObservabilityConfiguration()).isEqualTo(RESOURCE_MODEL.getObservabilityConfiguration());
     }
 
     @Test
@@ -129,6 +134,8 @@ public class TranslatorTest {
         assertThat(updateServiceRequest.sourceConfiguration()).isNotNull();
         assertThat(updateServiceRequest.instanceConfiguration()).isNotNull();
         assertThat(updateServiceRequest.networkConfiguration()).isNotNull();
+        assertThat(updateServiceRequest.networkConfiguration().egressConfiguration()).isNotNull();
+        assertThat(updateServiceRequest.networkConfiguration().ingressConfiguration()).isNotNull();
         assertThat(updateServiceRequest.sourceConfiguration().imageRepository().imageRepositoryType())
                 .isEqualTo(ImageRepositoryType.ECR);
     }
@@ -154,6 +161,33 @@ public class TranslatorTest {
         assertThat(updateServiceRequest.networkConfiguration()).isNotNull();
         assertThat(updateServiceRequest.networkConfiguration().egressConfiguration()).isNotNull();
         assertThat(updateServiceRequest.networkConfiguration().egressConfiguration().egressType()).isEqualTo(EgressType.DEFAULT);
+        assertThat(updateServiceRequest.networkConfiguration().ingressConfiguration()).isNotNull();
+        assertThat(updateServiceRequest.networkConfiguration().ingressConfiguration().isPubliclyAccessible()).isEqualTo(Boolean.TRUE);
+        assertThat(updateServiceRequest.sourceConfiguration().imageRepository().imageRepositoryType())
+                .isEqualTo(ImageRepositoryType.ECR);
+    }
+
+    @Test
+    public void translateToUpdateServiceRequest_NullObservabilityConfiguration() {
+
+        final ResourceModel resourceModel = ResourceModel.builder()
+                .serviceName(SERVICE_NAME)
+                .serviceArn(SERVICE_ARN)
+                .serviceId(SERVICE_ID)
+                .serviceUrl(SERVICE_URL)
+                .sourceConfiguration(SOURCE_CONFIGURATION)
+                .instanceConfiguration(INSTANCE_CONFIGURATION)
+                .build();
+
+        final UpdateServiceRequest updateServiceRequest = translateToUpdateServiceRequest(resourceModel);
+
+        assertThat(updateServiceRequest).isNotNull();
+        assertThat(updateServiceRequest.serviceArn()).isNotNull();
+        assertThat(updateServiceRequest.sourceConfiguration()).isNotNull();
+        assertThat(updateServiceRequest.instanceConfiguration()).isNotNull();
+        assertThat(updateServiceRequest.observabilityConfiguration()).isNotNull();
+        assertThat(updateServiceRequest.observabilityConfiguration().observabilityEnabled()).isFalse();
+        assertThat(updateServiceRequest.observabilityConfiguration().observabilityConfigurationArn()).isNull();
         assertThat(updateServiceRequest.sourceConfiguration().imageRepository().imageRepositoryType())
                 .isEqualTo(ImageRepositoryType.ECR);
     }

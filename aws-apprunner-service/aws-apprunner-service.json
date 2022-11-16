@@ -313,16 +313,51 @@
             ],
             "additionalProperties": false
         },
+        "IngressConfiguration": {
+            "description": "Network ingress configuration",
+            "type": "object",
+            "properties": {
+                "IsPubliclyAccessible": {
+                    "description": "It's set to true if the Apprunner service is publicly accessible. It's set to false otherwise.",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "IsPubliclyAccessible"
+            ],
+            "additionalProperties": false
+        },
         "NetworkConfiguration": {
             "description": "Network configuration",
             "type": "object",
             "properties": {
                 "EgressConfiguration": {
                     "$ref": "#/definitions/EgressConfiguration"
+                },
+                "IngressConfiguration": {
+                    "$ref": "#/definitions/IngressConfiguration"
+                }
+            },
+            "additionalProperties": false
+        },
+        "ServiceObservabilityConfiguration": {
+            "description": "Service observability configuration",
+            "type": "object",
+            "properties": {
+                "ObservabilityEnabled": {
+                    "description": "Observability enabled",
+                    "type": "boolean"
+                },
+                "ObservabilityConfigurationArn": {
+                    "description": "The Amazon Resource Name (ARN) of the App Runner ObservabilityConfiguration.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1011,
+                    "pattern": "arn:aws(-[\\w]+)*:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[0-9]{12}:(\\w|\/|-){1,1011}"
                 }
             },
             "required": [
-                "EgressConfiguration"
+                "ObservabilityEnabled"
             ],
             "additionalProperties": false
         },
@@ -397,6 +432,9 @@
         },
         "HealthCheckConfiguration": {
             "$ref": "#/definitions/HealthCheckConfiguration"
+        },
+        "ObservabilityConfiguration": {
+            "$ref": "#/definitions/ServiceObservabilityConfiguration"
         },
         "AutoScalingConfigurationArn": {
             "description": "Autoscaling configuration ARN",

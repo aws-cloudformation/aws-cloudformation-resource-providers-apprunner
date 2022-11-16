@@ -80,6 +80,10 @@ public class ReadHandlerTest extends AbstractTestBase {
                 .isEqualTo(request.getDesiredResourceState().getServiceUrl());
         assertThat(response.getResourceModel().getNetworkConfiguration().getEgressConfiguration())
                 .isEqualTo(request.getDesiredResourceState().getNetworkConfiguration().getEgressConfiguration());
+        assertThat(response.getResourceModel().getNetworkConfiguration().getIngressConfiguration())
+                .isEqualTo(request.getDesiredResourceState().getNetworkConfiguration().getIngressConfiguration());
+        assertThat(response.getResourceModel().getObservabilityConfiguration())
+                .isEqualTo(request.getDesiredResourceState().getObservabilityConfiguration());
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
