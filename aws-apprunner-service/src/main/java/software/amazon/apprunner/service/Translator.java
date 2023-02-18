@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.apprunner.model.Service;
 import software.amazon.awssdk.services.apprunner.model.ServiceSummary;
 import software.amazon.awssdk.services.apprunner.model.UpdateServiceRequest;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -133,6 +134,8 @@ public class Translator {
                     .port(imageConfigurationModel == null ? null : imageConfigurationModel.getPort())
                     .runtimeEnvironmentVariables(imageConfigurationModel == null ? null
                             : translateToEnvironmentVariables(imageConfigurationModel.getRuntimeEnvironmentVariables()))
+                    .runtimeEnvironmentSecrets(imageConfigurationModel == null ? null
+                            : translateToEnvironmentSecrets(imageConfigurationModel.getRuntimeEnvironmentSecrets()))
                     .build();
             imageRepository = software.amazon.awssdk.services.apprunner.model.ImageRepository.builder()
                     .imageIdentifier(imageRepositoryModel.getImageIdentifier())
@@ -154,6 +157,8 @@ public class Translator {
                     .port(imageConfiguration == null ? null : imageConfiguration.port())
                     .runtimeEnvironmentVariables(imageConfiguration == null ? null
                             : translateFromEnvironmentVariables(imageConfiguration.runtimeEnvironmentVariables()))
+                    .runtimeEnvironmentSecrets(imageConfiguration == null ? null
+                            : translateFromEnvironmentSecrets(imageConfiguration.runtimeEnvironmentSecrets()))
                     .build();
             imageRepositoryModel = ImageRepository.builder()
                     .imageIdentifier(imageRepository.imageIdentifier())
@@ -235,12 +240,15 @@ public class Translator {
         }
         final Map<String, String> runTimeEnvironmentVariables
                 = translateToEnvironmentVariables(codeConfigurationValuesModel.getRuntimeEnvironmentVariables());
+        final Map<String, String> runtimeEnvironmentSecrets
+                = translateToEnvironmentSecrets(codeConfigurationValuesModel.getRuntimeEnvironmentSecrets());
         return software.amazon.awssdk.services.apprunner.model.CodeConfigurationValues.builder()
                 .runtime(codeConfigurationValuesModel.getRuntime())
                 .buildCommand(codeConfigurationValuesModel.getBuildCommand())
                 .startCommand(codeConfigurationValuesModel.getStartCommand())
                 .port(codeConfigurationValuesModel.getPort())
                 .runtimeEnvironmentVariables(runTimeEnvironmentVariables)
+                .runtimeEnvironmentSecrets(runtimeEnvironmentSecrets)
                 .build();
     }
 
@@ -251,27 +259,45 @@ public class Translator {
         }
         final List<KeyValuePair> runTimeEnvironmentVariables
                 = translateFromEnvironmentVariables(codeConfigurationValues.runtimeEnvironmentVariables());
+        final List<KeyValuePair> runtimeEnvironmentSecrets
+                = translateFromEnvironmentSecrets(codeConfigurationValues.runtimeEnvironmentSecrets());
         return CodeConfigurationValues.builder()
                 .runtime(codeConfigurationValues.runtime().name())
                 .buildCommand(codeConfigurationValues.buildCommand())
                 .startCommand(codeConfigurationValues.startCommand())
                 .port(codeConfigurationValues.port())
                 .runtimeEnvironmentVariables(runTimeEnvironmentVariables)
+                .runtimeEnvironmentSecrets(runtimeEnvironmentSecrets)
                 .build();
     }
 
     private static Map<String, String> translateToEnvironmentVariables(
             final List<KeyValuePair> runtimeEnvironmentVariables) {
-        return runtimeEnvironmentVariables == null ? null : runtimeEnvironmentVariables.stream()
+        return runtimeEnvironmentVariables == null ? Collections.emptyMap() : runtimeEnvironmentVariables.stream()
+                .collect(Collectors.toMap(KeyValuePair::getName, KeyValuePair::getValue));
+    }
+
+    private static Map<String, String> translateToEnvironmentSecrets(
+            final List<KeyValuePair> runtimeEnvironmentSecrets) {
+        return runtimeEnvironmentSecrets == null ? Collections.emptyMap() : runtimeEnvironmentSecrets.stream()
                 .collect(Collectors.toMap(KeyValuePair::getName, KeyValuePair::getValue));
     }
 
     private static List<KeyValuePair> translateFromEnvironmentVariables(
             final Map<String, String> runtimeEnvironmentVariables) {
         return runtimeEnvironmentVariables == null || runtimeEnvironmentVariables.size() == 0
-                ? null
+                ? Collections.emptyList()
                 : runtimeEnvironmentVariables.keySet().stream()
                 .map(key -> new KeyValuePair(key, runtimeEnvironmentVariables.get(key)))
+                .collect(Collectors.toList());
+    }
+
+    private static List<KeyValuePair> translateFromEnvironmentSecrets(
+            final Map<String, String> runtimeEnvironmentSecrets) {
+        return runtimeEnvironmentSecrets == null || runtimeEnvironmentSecrets.size() == 0
+                ? Collections.emptyList()
+                : runtimeEnvironmentSecrets.keySet().stream()
+                .map(key -> new KeyValuePair(key, runtimeEnvironmentSecrets.get(key)))
                 .collect(Collectors.toList());
     }
 
